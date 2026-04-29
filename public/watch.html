@@ -5,385 +5,257 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Watch — LiveSports</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
-  <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet" />
-  <!-- Clappr Player -->
-  <script src="https://cdn.jsdelivr.net/npm/clappr@latest/dist/clappr.min.js"></script>
-  <!-- HLS.js fallback -->
-  <script src="https://cdn.jsdelivr.net/npm/hls.js@latest/dist/hls.min.js"></script>
-
+  <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet" />
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-
     :root {
-      --bg: #060608;
-      --surface: #0e0f14;
-      --border: #1e2030;
       --accent: #e63946;
       --text: #f0f0f4;
       --muted: #6b7080;
     }
-
     html, body {
-      background: var(--bg);
+      background: #000;
       color: var(--text);
       font-family: 'DM Sans', sans-serif;
-      height: 100%;
+      width: 100vw;
+      height: 100vh;
       overflow: hidden;
     }
-
-    /* ── Header ── */
-    header {
+    #iframe-container {
+      position: fixed;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      background: #000;
+    }
+    #stream-iframe {
+      width: 100%;
+      height: 100%;
+      border: none;
+      display: block;
+    }
+    #header {
       position: fixed;
       top: 0; left: 0; right: 0;
-      z-index: 200;
-      height: 52px;
+      z-index: 1000;
+      height: 56px;
       display: flex;
       align-items: center;
       justify-content: space-between;
       padding: 0 1.5rem;
-      background: linear-gradient(to bottom, rgba(6,6,8,0.95), transparent);
-      transition: opacity 0.3s;
+      background: linear-gradient(to bottom, rgba(0,0,0,0.85) 0%, transparent 100%);
+      opacity: 0;
+      transition: opacity 0.3s ease;
+      pointer-events: none;
     }
-    header.hidden { opacity: 0; pointer-events: none; }
-
+    #header.visible { opacity: 1; pointer-events: all; }
     .logo {
       font-family: 'Bebas Neue', sans-serif;
-      font-size: 1.4rem;
+      font-size: 1.5rem;
       letter-spacing: 0.1em;
       text-decoration: none;
       color: var(--text);
     }
     .logo span { color: var(--accent); }
-
     #match-title {
-      font-size: 0.85rem;
+      font-size: 0.82rem;
       font-weight: 500;
-      color: var(--muted);
-      max-width: 50vw;
+      color: rgba(255,255,255,0.7);
+      max-width: 40vw;
       white-space: nowrap;
       overflow: hidden;
       text-overflow: ellipsis;
+      text-align: center;
     }
-
     .back-btn {
       display: flex;
       align-items: center;
       gap: 6px;
       font-size: 0.8rem;
-      color: var(--muted);
+      color: rgba(255,255,255,0.6);
       text-decoration: none;
-      transition: color 0.15s;
+      background: rgba(255,255,255,0.1);
+      border: 1px solid rgba(255,255,255,0.15);
+      padding: 5px 12px;
+      border-radius: 6px;
+      backdrop-filter: blur(4px);
+      transition: all 0.15s;
     }
-    .back-btn:hover { color: var(--text); }
-    .back-btn svg { width: 16px; height: 16px; }
-
-    /* ── Player area ── */
-    #player-wrap {
+    .back-btn:hover { background: rgba(255,255,255,0.18); color: #fff; }
+    .back-btn svg { width: 14px; height: 14px; }
+    #bottom-bar {
       position: fixed;
-      inset: 0;
-      background: #000;
+      bottom: 0; left: 0; right: 0;
+      z-index: 1000;
+      padding: 1rem 1.5rem;
+      background: linear-gradient(to top, rgba(0,0,0,0.85) 0%, transparent 100%);
       display: flex;
       align-items: center;
-      justify-content: center;
+      gap: 0.6rem;
+      flex-wrap: wrap;
+      opacity: 0;
+      transition: opacity 0.3s ease;
+      pointer-events: none;
     }
-
-    #player {
-      width: 100%;
-      height: 100%;
+    #bottom-bar.visible { opacity: 1; pointer-events: all; }
+    #bottom-bar.empty { display: none; }
+    .stream-btn {
+      padding: 5px 14px;
+      border-radius: 6px;
+      border: 1px solid rgba(255,255,255,0.2);
+      background: rgba(0,0,0,0.5);
+      color: rgba(255,255,255,0.7);
+      font-family: 'DM Sans', sans-serif;
+      font-size: 0.78rem;
+      font-weight: 500;
+      cursor: pointer;
+      backdrop-filter: blur(4px);
+      transition: all 0.15s;
+      white-space: nowrap;
     }
-
-    /* ── Overlay states ── */
-    #overlay {
+    .stream-btn:hover { background: rgba(255,255,255,0.15); color: #fff; }
+    .stream-btn.active { background: var(--accent); border-color: var(--accent); color: #fff; }
+    #loading-splash {
       position: fixed;
       inset: 0;
-      z-index: 100;
+      z-index: 500;
+      background: #000;
       display: flex;
       flex-direction: column;
       align-items: center;
       justify-content: center;
       gap: 1.2rem;
-      background: rgba(6,6,8,0.92);
-      backdrop-filter: blur(8px);
-      text-align: center;
-      padding: 2rem;
-      transition: opacity 0.5s;
+      transition: opacity 0.7s ease;
     }
-    #overlay.hidden {
-      opacity: 0;
-      pointer-events: none;
-    }
-
-    .overlay-icon { font-size: 3rem; }
-    .overlay-title {
+    #loading-splash.gone { opacity: 0; pointer-events: none; }
+    .splash-logo {
       font-family: 'Bebas Neue', sans-serif;
-      font-size: 2rem;
-      letter-spacing: 0.08em;
+      font-size: 2.5rem;
+      letter-spacing: 0.15em;
     }
-    .overlay-sub {
-      font-size: 0.88rem;
-      color: var(--muted);
-      max-width: 380px;
-      line-height: 1.6;
+    .splash-logo span { color: var(--accent); }
+    .splash-title {
+      font-size: 0.9rem;
+      color: rgba(255,255,255,0.4);
+      max-width: 320px;
+      text-align: center;
+      line-height: 1.5;
     }
-
-    .spinner-lg {
-      width: 52px; height: 52px;
-      border: 3px solid rgba(230,57,70,0.2);
+    .splash-spinner {
+      width: 34px; height: 34px;
+      border: 2px solid rgba(230,57,70,0.2);
       border-top-color: var(--accent);
       border-radius: 50%;
-      animation: spin 0.9s linear infinite;
+      animation: spin 0.85s linear infinite;
     }
     @keyframes spin { to { transform: rotate(360deg); } }
-
-    .progress-bar {
-      width: 260px;
-      height: 3px;
-      background: var(--border);
-      border-radius: 99px;
-      overflow: hidden;
-    }
-    .progress-fill {
-      height: 100%;
-      background: var(--accent);
-      border-radius: 99px;
-      animation: progress 35s linear forwards;
-    }
-    @keyframes progress { from { width:0% } to { width:100% } }
-
-    .retry-btn {
-      margin-top: 0.5rem;
-      padding: 0.6rem 1.8rem;
-      background: var(--accent);
-      border: none;
-      border-radius: 8px;
-      color: #fff;
-      font-family: 'DM Sans', sans-serif;
-      font-size: 0.88rem;
-      font-weight: 600;
-      cursor: pointer;
-      transition: opacity 0.15s;
-    }
-    .retry-btn:hover { opacity: 0.85; }
-
-    /* ── Status badge ── */
-    #status-badge {
-      position: fixed;
-      bottom: 20px;
-      right: 20px;
-      z-index: 300;
-      display: flex;
-      align-items: center;
-      gap: 6px;
-      padding: 6px 14px;
-      border-radius: 99px;
-      background: rgba(14,15,20,0.85);
-      border: 1px solid var(--border);
-      font-size: 0.72rem;
-      font-weight: 500;
-      color: var(--muted);
-      backdrop-filter: blur(8px);
-      transition: opacity 0.4s;
-      pointer-events: none;
-    }
-    #status-badge.hidden { opacity: 0; }
-    #status-dot {
-      width: 6px; height: 6px;
-      border-radius: 50%;
-      background: var(--muted);
-    }
-    #status-dot.green { background: #22c55e; }
-    #status-dot.orange { background: #f59e0b; }
-    #status-dot.red { background: var(--accent); }
   </style>
 </head>
 <body>
 
-<header id="header">
-  <a class="logo" href="/">LIVE<span>SPORTS</span></a>
-  <div id="match-title">Loading…</div>
-  <a class="back-btn" href="/">
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+<div id="loading-splash">
+  <div class="splash-logo">LIVE<span>SPORTS</span></div>
+  <div class="splash-spinner"></div>
+  <div class="splash-title" id="splash-title">Connecting to stream…</div>
+</div>
+
+<div id="header">
+  <a class="logo" href="index.html">LIVE<span>SPORTS</span></a>
+  <div id="match-title"></div>
+  <a class="back-btn" href="index.html">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
       <path d="M19 12H5M12 5l-7 7 7 7"/>
     </svg>
     Back
   </a>
-</header>
-
-<div id="player-wrap">
-  <div id="player"></div>
 </div>
 
-<!-- Overlay -->
-<div id="overlay">
-  <div class="spinner-lg"></div>
-  <div class="overlay-title">Fetching Stream</div>
-  <div class="overlay-sub" id="overlay-sub">Extracting live stream link… this may take up to 30 seconds.</div>
-  <div class="progress-bar"><div class="progress-fill" id="progress-fill"></div></div>
+<div id="iframe-container">
+  <iframe
+    id="stream-iframe"
+    allowfullscreen
+    allow="autoplay; fullscreen; encrypted-media; picture-in-picture"
+    referrerpolicy="no-referrer"
+    scrolling="no"
+  ></iframe>
 </div>
 
-<!-- Status badge -->
-<div id="status-badge">
-  <div id="status-dot"></div>
-  <span id="status-text">Connecting…</span>
+<div id="bottom-bar">
+  <span style="font-size:0.7rem;color:rgba(255,255,255,0.35);margin-right:2px;letter-spacing:0.08em;text-transform:uppercase;">Feeds</span>
 </div>
 
 <script>
-  // ── Parse URL params ──────────────────────────────────────────────────────
   const params = new URLSearchParams(window.location.search);
-  const streamId = params.get('id');
   const iframeUrl = params.get('iframe');
-  const title = params.get('title') || 'Live Stream';
+  const title = decodeURIComponent(params.get('title') || 'Live Stream');
+  let substreams = [];
+  try { substreams = JSON.parse(decodeURIComponent(params.get('substreams') || '[]')); } catch(_) {}
 
   document.getElementById('match-title').textContent = title;
-  document.title = `${title} — LiveSports`;
+  document.getElementById('splash-title').textContent = title;
+  document.title = title + ' — LiveSports';
 
-  // ── Auto-hide header on mouse idle ──────────────────────────────────────
-  let hideTimer;
-  const header = document.getElementById('header');
-  document.addEventListener('mousemove', () => {
-    header.classList.remove('hidden');
-    clearTimeout(hideTimer);
-    hideTimer = setTimeout(() => header.classList.add('hidden'), 3000);
-  });
+  const iframeEl  = document.getElementById('stream-iframe');
+  const splash    = document.getElementById('loading-splash');
+  const bottomBar = document.getElementById('bottom-bar');
+  const header    = document.getElementById('header');
 
-  // ── Status badge ─────────────────────────────────────────────────────────
-  const badge = document.getElementById('status-badge');
-  const statusDot = document.getElementById('status-dot');
-  const statusText = document.getElementById('status-text');
-
-  function setStatus(state, text) {
-    badge.classList.remove('hidden');
-    statusDot.className = '';
-    statusDot.classList.add(state);
-    statusText.textContent = text;
-    if (state === 'green') {
-      setTimeout(() => badge.classList.add('hidden'), 4000);
-    }
+  function loadIframe(url) {
+    iframeEl.src = url;
   }
 
-  // ── Overlay ───────────────────────────────────────────────────────────────
-  const overlay = document.getElementById('overlay');
-  const overlaySub = document.getElementById('overlay-sub');
-
-  function showOverlay(icon, title, sub, showProgress = false, showRetry = false) {
-    overlay.innerHTML = `
-      ${icon ? `<div class="overlay-icon">${icon}</div>` : '<div class="spinner-lg"></div>'}
-      <div class="overlay-title">${title}</div>
-      <div class="overlay-sub">${sub}</div>
-      ${showProgress ? '<div class="progress-bar"><div class="progress-fill"></div></div>' : ''}
-      ${showRetry ? '<button class="retry-btn" onclick="location.reload()">Try Again</button>' : ''}
-    `;
-    overlay.classList.remove('hidden');
+  // Load main stream
+  if (iframeUrl) {
+    loadIframe(decodeURIComponent(iframeUrl));
+  } else {
+    document.getElementById('splash-title').textContent = 'No stream URL provided.';
   }
 
-  function hideOverlay() {
-    overlay.classList.add('hidden');
-  }
+  // Hide splash on iframe load or after 5s fallback
+  iframeEl.addEventListener('load', () => setTimeout(() => splash.classList.add('gone'), 800));
+  setTimeout(() => splash.classList.add('gone'), 5000);
 
-  // ── Clappr Player ─────────────────────────────────────────────────────────
-  let player = null;
-  let refreshTimer = null;
-  const REFRESH_INTERVAL = 4 * 60 * 1000; // match server refresh
+  // Substream switcher
+  if (substreams.length > 0) {
+    const mainBtn = document.createElement('button');
+    mainBtn.className = 'stream-btn active';
+    mainBtn.textContent = 'Main';
+    bottomBar.appendChild(mainBtn);
+    mainBtn.addEventListener('click', () => switchTo(decodeURIComponent(iframeUrl), mainBtn));
 
-  function initPlayer(m3u8Url) {
-    console.log('[Player] Loading M3U8:', m3u8Url);
-
-    if (player) {
-      try { player.destroy(); } catch(_) {}
-      player = null;
-    }
-
-    player = new Clappr.Player({
-      source: m3u8Url,
-      parentId: '#player',
-      width: '100%',
-      height: '100%',
-      autoPlay: true,
-      mute: false,
-      hlsPlayback: {
-        liveSyncDurationCount: 4,
-        liveMaxLatencyDurationCount: 8,
-        enableWorker: true,
-        lowLatencyMode: false,
-      },
-      events: {
-        onReady: () => {
-          hideOverlay();
-          setStatus('green', 'Stream connected');
-        },
-        onError: (err) => {
-          console.error('[Player] Error:', err);
-          setStatus('red', 'Playback error — refreshing…');
-          setTimeout(() => fetchAndPlay(), 3000);
-        },
-        onBuffering: () => setStatus('orange', 'Buffering…'),
-        onPlay: () => setStatus('green', 'Playing'),
-      }
+    substreams.forEach(s => {
+      const btn = document.createElement('button');
+      btn.className = 'stream-btn';
+      btn.textContent = s.tag || s.name || 'Alt';
+      bottomBar.appendChild(btn);
+      btn.addEventListener('click', () => switchTo(s.iframe, btn));
     });
+  } else {
+    bottomBar.classList.add('empty');
   }
 
-  // ── Fetch M3U8 from backend ───────────────────────────────────────────────
-  async function fetchAndPlay(isRefresh = false) {
-    if (!streamId || !iframeUrl) {
-      showOverlay('⚠', 'Missing Parameters', 'No stream ID or iframe URL provided.', false, true);
-      return;
-    }
-
-    if (!isRefresh) {
-      showOverlay(null, 'Fetching Stream', 'Extracting live stream link… this may take up to 35 seconds.', true);
-    } else {
-      setStatus('orange', 'Refreshing M3U8…');
-    }
-
-    try {
-      const url = `/stream?id=${encodeURIComponent(streamId)}&iframe=${encodeURIComponent(iframeUrl)}`;
-      const res = await fetch(url);
-      const data = await res.json();
-
-      if (!res.ok || !data.m3u8) {
-        throw new Error(data.error || 'No M3U8 returned');
-      }
-
-      if (!isRefresh) {
-        initPlayer(data.m3u8);
-      } else {
-        // For refresh, update source without destroying player if possible
-        console.log('[Refresh] New M3U8:', data.m3u8);
-        if (player) {
-          try {
-            player.load(data.m3u8);
-            setStatus('green', 'Stream refreshed');
-          } catch(_) {
-            initPlayer(data.m3u8);
-          }
-        }
-      }
-
-      // Schedule next refresh slightly before server's refresh
-      clearTimeout(refreshTimer);
-      refreshTimer = setTimeout(() => fetchAndPlay(true), REFRESH_INTERVAL);
-
-    } catch (err) {
-      console.error('[Fetch] Error:', err.message);
-      if (!isRefresh) {
-        showOverlay('📡', 'Stream Unavailable', `${err.message}<br><br>The match may not be live yet, or the stream is currently offline.`, false, true);
-      } else {
-        setStatus('red', 'Refresh failed — retrying in 60s');
-        refreshTimer = setTimeout(() => fetchAndPlay(true), 60000);
-      }
-    }
+  function switchTo(url, activeBtn) {
+    bottomBar.querySelectorAll('.stream-btn').forEach(b => b.classList.remove('active'));
+    activeBtn.classList.add('active');
+    splash.classList.remove('gone');
+    loadIframe(url);
+    setTimeout(() => splash.classList.add('gone'), 5000);
   }
 
-  // ── Start ─────────────────────────────────────────────────────────────────
-  fetchAndPlay();
-
-  // ── Cleanup on page leave ─────────────────────────────────────────────────
-  window.addEventListener('beforeunload', () => {
-    clearTimeout(refreshTimer);
-    if (streamId) {
-      navigator.sendBeacon(`/stream/${streamId}`, '{}');
-    }
-  });
+  // Auto-hide UI on mouse idle
+  let hideTimer;
+  function showUI() {
+    header.classList.add('visible');
+    if (substreams.length > 0) bottomBar.classList.add('visible');
+    clearTimeout(hideTimer);
+    hideTimer = setTimeout(() => {
+      header.classList.remove('visible');
+      bottomBar.classList.remove('visible');
+    }, 3500);
+  }
+  document.addEventListener('mousemove', showUI);
+  document.addEventListener('touchstart', showUI);
+  showUI();
 </script>
 </body>
 </html>
