@@ -400,17 +400,17 @@
       const res = await fetch('/api/streams');
       const data = await res.json();
 
-      // Flatten all streams from all categories
+      // Real API shape: { success: true, streams: [ { category, id, streams: [...] } ] }
       allStreams = [];
-      if (Array.isArray(data)) {
-        data.forEach(cat => {
-          if (cat.streams && Array.isArray(cat.streams)) {
-            cat.streams.forEach(s => {
-              allStreams.push({ ...s, category_name: s.category_name || cat.category });
-            });
-          }
-        });
-      }
+      const categories = data.streams || data; // handle both wrapped and raw
+      const catArray = Array.isArray(categories) ? categories : [];
+      catArray.forEach(cat => {
+        if (cat.streams && Array.isArray(cat.streams)) {
+          cat.streams.forEach(s => {
+            allStreams.push({ ...s, category_name: s.category_name || cat.category });
+          });
+        }
+      });
 
       // Sort: live first
       allStreams.sort((a, b) => {
